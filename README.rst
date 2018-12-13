@@ -1,6 +1,6 @@
-#################
+####################
 Requests OpenTracing
-#################
+####################
 
 This package enables tracing http requests in a `Requests`_ ``Session`` via `The OpenTracing Project`_. 
 Once a production system contends with real concurrency or splits into many services, crucial (and
@@ -28,7 +28,7 @@ Run the following command:
 
 .. code-block:: 
 
-    $ git clone https://github.com/signalfx/python-requests.git && pip install ./python-requests
+    $ pip install requests-opentracing
 
 Usage
 =====

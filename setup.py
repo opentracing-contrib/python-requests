@@ -31,7 +31,7 @@ integration_test_requirements = ['docker']
 
 setup(
     name='Requests-OpenTracing',
-    version='0.0.1',
+    version='0.1.0',
     url='http://github.com/signalfx/python-requests',
     download_url='http://github.com/signalfx/python-requests/tarball/master',
     author='SignalFx, Inc.',
@@ -53,6 +53,7 @@ setup(
       'Programming Language :: Python :: 3.4',
       'Programming Language :: Python :: 3.5',
       'Programming Language :: Python :: 3.6',
+      'Programming Language :: Python :: 3.7',
     ],
     install_requires=requirements,
     tests_require=test_requirements + integration_test_requirements,

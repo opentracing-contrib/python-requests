@@ -72,7 +72,7 @@ class TestSessionTracing(object):
     def test_unsuccessful_requests(self, tracer, session, method):
         invalid_server = 'https://localhost:123456789'
         with tracer.start_active_span('root'):
-            with pytest.raises(requests.ConnectionError) as ce:
+            with pytest.raises(requests.RequestException) as re:
                 getattr(session, method)(invalid_server)
         spans = tracer.finished_spans()
         assert len(spans) == 2
@@ -87,4 +87,4 @@ class TestSessionTracing(object):
         assert tags[ext_tags.HTTP_METHOD] == method
         assert tags[ext_tags.HTTP_URL] == invalid_server
         assert tags[ext_tags.ERROR] is True
-        assert str(ce.value) in tags['error.object']
+        assert str(re.value) in tags['error.object']

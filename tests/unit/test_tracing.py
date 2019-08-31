@@ -8,7 +8,7 @@ import opentracing
 import pytest
 import mock
 
-from requests_opentracing.tracing import SessionTracing
+from requests_opentracing.tracing import SessionTracing, monkeypatch_requests
 
 
 def stubbed_request(method, url, *args, **kwargs):
@@ -16,31 +16,62 @@ def stubbed_request(method, url, *args, **kwargs):
     return response(method, url, 200, kwargs.get('headers', {}))
 
 
+validate_monkeypatch = pytest.mark.parametrize("use_builtin_session", [True, False])
+
+
+@pytest.fixture(autouse=True)
+def monkeypatched_session(request):
+    original_session = requests.Session
+    try:
+        if request.getfixturevalue("use_builtin_session"):
+            monkeypatch_requests()
+
+        yield original_session
+    finally:
+        requests.Session = original_session
+        requests.sessions.Session = original_session
+
+
 class TestSessionTracing(object):
 
-    def test_sources_tracer(self):
+    @validate_monkeypatch
+    def test_sources_tracer(self, use_builtin_session):
+        session_cls = requests.Session if use_builtin_session else SessionTracing
+
         tracer = MockTracer()
-        assert SessionTracing(tracer)._tracer is tracer
+        assert session_cls(tracer)._tracer is tracer
 
-    def test_sources_global_tracer_by_default(self):
-        assert SessionTracing()._tracer is opentracing.tracer
+    @validate_monkeypatch
+    def test_sources_global_tracer_by_default(self, use_builtin_session):
+        session_cls = requests.Session if use_builtin_session else SessionTracing
 
-    def test_sources_propagate(self):
-        assert SessionTracing()._propagate is False
-        assert SessionTracing(propagate=True)._propagate is True
-        assert SessionTracing(propagate=False)._propagate is False
+        assert session_cls()._tracer is opentracing.tracer
 
-    def test_sources_span_tags(self):
-        assert SessionTracing()._span_tags == {}
+    @validate_monkeypatch
+    def test_sources_propagate(self, use_builtin_session):
+        session_cls = requests.Session if use_builtin_session else SessionTracing
+
+        assert session_cls()._propagate is False
+        assert session_cls(propagate=True)._propagate is True
+        assert session_cls(propagate=False)._propagate is False
+
+    @validate_monkeypatch
+    def test_sources_span_tags(self, use_builtin_session):
+        session_cls = requests.Session if use_builtin_session else SessionTracing
+
+        assert session_cls()._span_tags == {}
         desired_tags = dict(one=123)
-        assert SessionTracing(span_tags=desired_tags)._span_tags is desired_tags
+        assert session_cls(span_tags=desired_tags)._span_tags is desired_tags
 
     @pytest.mark.parametrize('method', ('get', 'post', 'put', 'patch',
                                         'head', 'delete', 'options'))
-    def test_request_without_propagate(self, method):
+    @validate_monkeypatch
+    def test_request_without_propagate(self, method, use_builtin_session, monkeypatched_session):
+        session_cls = requests.Session if use_builtin_session else SessionTracing
+
         tracer = MockTracer()
-        tracing = SessionTracing(tracer, False, span_tags=dict(one=123))
-        with mock.patch.object(requests.sessions.Session, 'request', stubbed_request):
+        tracing = session_cls(tracer, False, span_tags=dict(one=123))
+        with mock.patch.object(monkeypatched_session, 'request', stubbed_request):
             response = getattr(tracing, method)('my_url')
 
         assert len(tracer.finished_spans()) == 1
@@ -59,10 +90,13 @@ class TestSessionTracing(object):
 
     @pytest.mark.parametrize('method', ('get', 'post', 'put', 'patch',
                                         'head', 'delete', 'options'))
-    def test_request_with_propagate(self, method):
+    @validate_monkeypatch
+    def test_request_with_propagate(self, method, use_builtin_session, monkeypatched_session):
+        session_cls = requests.Session if use_builtin_session else SessionTracing
+
         tracer = MockTracer()
-        tracing = SessionTracing(tracer, True, span_tags=dict(one=123))
-        with mock.patch.object(requests.sessions.Session, 'request', stubbed_request):
+        tracing = session_cls(tracer, True, span_tags=dict(one=123))
+        with mock.patch.object(monkeypatched_session, 'request', stubbed_request):
             response = getattr(tracing, method)('my_url')
 
         assert len(tracer.finished_spans()) == 1

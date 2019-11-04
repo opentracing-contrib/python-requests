@@ -45,7 +45,7 @@ class TestSessionTracing(object):
         assert session_cls()._tracer is opentracing.tracer
 
     def test_sources_propagate(self, session_cls):
-        assert session_cls()._propagate is False
+        assert session_cls()._propagate is True
         assert session_cls(propagate=True)._propagate is True
         assert session_cls(propagate=False)._propagate is False
 

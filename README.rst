@@ -51,8 +51,8 @@ current trace context to be propagated via http headers with your client request
     from requests_opentracing import SessionTracing
 
     opentracing_tracer = # some OpenTracing tracer implementation
-    traced_session = SessionTracing(opentracing_tracer, propagate=True,  # propagation allows distributed tracing
-                                    span_tags=dict(my_helpful='tag'))    # in upstream services you control.
+    traced_session = SessionTracing(opentracing_tracer, propagate=False,  # propagation allows distributed tracing in
+                                    span_tags=dict(my_helpful='tag'))     # upstream services you control (True by default).
     resp = traced_session.get(my_url)
 
 or
@@ -66,7 +66,7 @@ or
     opentracing.tracer = # some OpenTracing tracer implementation
     traced_session = SessionTracing()  # default to opentracing.tracer
 
-You can now monkeypatch the ``requests.Session`` and ``requests.sessions.Session` objects to point to the
+You can now monkeypatch the ``requests.Session`` and ``requests.sessions.Session`` objects to point to the
 ``SessionTracing`` subclass for easier initialization:
 
 .. code-block:: python
@@ -79,7 +79,7 @@ You can now monkeypatch the ``requests.Session`` and ``requests.sessions.Session
     from requests import Session
 
     opentracing_tracer = # some OpenTracing tracer implementation
-    traced_session = Session(opentracing_tracer, propagate=True,  # Same arguments as provided to SessionTracing
+    traced_session = Session(opentracing_tracer, propagate=False,  # Same arguments as provided to SessionTracing
                              span_tags=dict(my_helpful='tag'))
     resp = traced_session.get(my_url)
 

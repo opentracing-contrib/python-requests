@@ -9,7 +9,7 @@ import opentracing
 
 class SessionTracing(requests.sessions.Session):
 
-    def __init__(self, tracer=None, propagate=False, span_tags=None):
+    def __init__(self, tracer=None, propagate=True, span_tags=None):
         self._tracer = tracer or opentracing.tracer
         self._propagate = propagate
         self._span_tags = span_tags or {}

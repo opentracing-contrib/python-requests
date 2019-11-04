@@ -1,4 +1,4 @@
-# Copyright (C) 2018 SignalFx, Inc. All rights reserved.
+# Copyright (C) 2018-2019 SignalFx, Inc. All rights reserved.
 from collections import namedtuple
 
 from opentracing.mocktracer import MockTracer
@@ -8,39 +8,58 @@ import opentracing
 import pytest
 import mock
 
-from requests_opentracing.tracing import SessionTracing
+from requests_opentracing.tracing import SessionTracing, monkeypatch_requests
 
 
-def stubbed_request(method, url, *args, **kwargs):
+def stubbed_request(_, method, url, *args, **kwargs):
     response = namedtuple('response', 'method url status_code headers')
     return response(method, url, 200, kwargs.get('headers', {}))
 
 
+@pytest.fixture
+def original_session():
+    yield requests.sessions.Session
+
+
+@pytest.fixture(params=(True, False))
+def session_cls(request):
+    if request.param:
+        original_session = requests.Session
+        try:
+            monkeypatch_requests()
+            yield requests.Session
+        finally:
+            requests.Session = original_session
+            requests.sessions.Session = original_session
+    else:
+        yield SessionTracing
+
+
 class TestSessionTracing(object):
 
-    def test_sources_tracer(self):
+    def test_sources_tracer(self, session_cls):
         tracer = MockTracer()
-        assert SessionTracing(tracer)._tracer is tracer
+        assert session_cls(tracer)._tracer is tracer
 
-    def test_sources_global_tracer_by_default(self):
-        assert SessionTracing()._tracer is opentracing.tracer
+    def test_sources_global_tracer_by_default(self, session_cls):
+        assert session_cls()._tracer is opentracing.tracer
 
-    def test_sources_propagate(self):
-        assert SessionTracing()._propagate is False
-        assert SessionTracing(propagate=True)._propagate is True
-        assert SessionTracing(propagate=False)._propagate is False
+    def test_sources_propagate(self, session_cls):
+        assert session_cls()._propagate is False
+        assert session_cls(propagate=True)._propagate is True
+        assert session_cls(propagate=False)._propagate is False
 
-    def test_sources_span_tags(self):
-        assert SessionTracing()._span_tags == {}
+    def test_sources_span_tags(self, session_cls):
+        assert session_cls()._span_tags == {}
         desired_tags = dict(one=123)
-        assert SessionTracing(span_tags=desired_tags)._span_tags is desired_tags
+        assert session_cls(span_tags=desired_tags)._span_tags is desired_tags
 
     @pytest.mark.parametrize('method', ('get', 'post', 'put', 'patch',
                                         'head', 'delete', 'options'))
-    def test_request_without_propagate(self, method):
+    def test_request_without_propagate(self, method, original_session, session_cls):
         tracer = MockTracer()
-        tracing = SessionTracing(tracer, False, span_tags=dict(one=123))
-        with mock.patch.object(requests.sessions.Session, 'request', stubbed_request):
+        tracing = session_cls(tracer, False, span_tags=dict(one=123))
+        with mock.patch.object(original_session, 'request', stubbed_request):
             response = getattr(tracing, method)('my_url')
 
         assert len(tracer.finished_spans()) == 1
@@ -59,10 +78,10 @@ class TestSessionTracing(object):
 
     @pytest.mark.parametrize('method', ('get', 'post', 'put', 'patch',
                                         'head', 'delete', 'options'))
-    def test_request_with_propagate(self, method):
+    def test_request_with_propagate(self, method, original_session, session_cls):
         tracer = MockTracer()
-        tracing = SessionTracing(tracer, True, span_tags=dict(one=123))
-        with mock.patch.object(requests.sessions.Session, 'request', stubbed_request):
+        tracing = session_cls(tracer, True, span_tags=dict(one=123))
+        with mock.patch.object(original_session, 'request', stubbed_request):
             response = getattr(tracing, method)('my_url')
 
         assert len(tracer.finished_spans()) == 1

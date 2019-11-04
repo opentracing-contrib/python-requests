@@ -1,4 +1,4 @@
-# Copyright (C) 2018 SignalFx, Inc. All rights reserved.
+# Copyright (C) 2018-2019 SignalFx, Inc. All rights reserved.
 from traceback import format_exc
 
 from opentracing.propagation import Format
@@ -13,7 +13,7 @@ class SessionTracing(requests.sessions.Session):
         self._tracer = tracer or opentracing.tracer
         self._propagate = propagate
         self._span_tags = span_tags or {}
-        requests.sessions.Session.__init__(self)
+        super(SessionTracing, self).__init__()
 
     def request(self, method, url, *args, **kwargs):
         lower_method = method.lower()
@@ -33,7 +33,7 @@ class SessionTracing(requests.sessions.Session):
                 except opentracing.UnsupportedFormatException:
                     pass
             try:
-                resp = requests.sessions.Session.request(self, method, url, *args, **kwargs)
+                resp = super(SessionTracing, self).request(method, url, *args, **kwargs)
                 span.set_tag(tags.HTTP_STATUS_CODE, resp.status_code)
             except Exception:
                 span.set_tag(tags.ERROR, True)
@@ -41,3 +41,8 @@ class SessionTracing(requests.sessions.Session):
                 raise
 
         return resp
+
+
+def monkeypatch_requests():
+    requests.Session = SessionTracing
+    requests.sessions.Session = SessionTracing

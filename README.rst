@@ -66,6 +66,23 @@ or
     opentracing.tracer = # some OpenTracing tracer implementation
     traced_session = SessionTracing()  # default to opentracing.tracer
 
+You can now monkeypatch the ``requests.Session`` and ``requests.sessions.Session` objects to point to the
+``SessionTracing`` subclass for easier initialization:
+
+.. code-block:: python
+
+    from requests_opentracing import monkeypatch_requests
+
+    monkeypatch_requests()
+
+
+    from requests import Session
+
+    opentracing_tracer = # some OpenTracing tracer implementation
+    traced_session = Session(opentracing_tracer, propagate=True,  # Same arguments as provided to SessionTracing
+                             span_tags=dict(my_helpful='tag'))
+    resp = traced_session.get(my_url)
+
 Further Information
 ===================
 

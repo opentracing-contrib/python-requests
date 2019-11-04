@@ -31,11 +31,11 @@ integration_test_requirements = ['docker']
 
 setup(
     name='Requests-OpenTracing',
-    version='0.1.0',
-    url='http://github.com/signalfx/python-requests',
-    download_url='http://github.com/signalfx/python-requests/tarball/master',
+    version='0.2.0',
+    url='http://github.com/opentracing-contrib/python-requests',
+    download_url='http://github.com/opentracing-contrib/python-requests/tarball/master',
     author='SignalFx, Inc.',
-    author_email='info@signalfx.com',
+    author_email='signalfx-oss@splunk.com',
     description='OpenTracing support for Requests',
     long_description=long_description,
     packages=find_packages(),

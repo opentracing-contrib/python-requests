@@ -10,14 +10,17 @@ import opentracing
 class SessionTracing(requests.sessions.Session):
 
     def __init__(self, tracer=None, propagate=True, span_tags=None):
-        self._tracer = tracer or opentracing.tracer
+        self._tracer = tracer
         self._propagate = propagate
         self._span_tags = span_tags or {}
         super(SessionTracing, self).__init__()
 
+    def _get_tracer(self):
+        return self._tracer or opentracing.tracer
+        
     def request(self, method, url, *args, **kwargs):
         lower_method = method.lower()
-        with self._tracer.start_active_span('requests.{}'.format(lower_method)) as scope:
+        with self._get_tracer().start_active_span('requests.{}'.format(lower_method)) as scope:
             span = scope.span
             span.set_tag(tags.SPAN_KIND, tags.SPAN_KIND_RPC_CLIENT)
             span.set_tag(tags.COMPONENT, 'requests')
@@ -29,7 +32,7 @@ class SessionTracing(requests.sessions.Session):
             if self._propagate:
                 headers = kwargs.setdefault('headers', {})
                 try:
-                    self._tracer.inject(span.context, Format.HTTP_HEADERS, headers)
+                    self._get_tracer().inject(span.context, Format.HTTP_HEADERS, headers)
                 except opentracing.UnsupportedFormatException:
                     pass
             try:

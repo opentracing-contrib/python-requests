@@ -40,9 +40,11 @@ class TestSessionTracing(object):
     def test_sources_tracer(self, session_cls):
         tracer = MockTracer()
         assert session_cls(tracer)._tracer is tracer
+        assert session_cls(tracer)._get_tracer() is tracer
 
     def test_sources_global_tracer_by_default(self, session_cls):
-        assert session_cls()._tracer is opentracing.tracer
+        assert session_cls()._tracer is None
+        assert session_cls()._get_tracer() is opentracing.tracer
 
     def test_sources_propagate(self, session_cls):
         assert session_cls()._propagate is True

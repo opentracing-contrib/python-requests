@@ -18,9 +18,12 @@ class SessionTracing(requests.sessions.Session):
     def _get_tracer(self):
         return self._tracer or opentracing.tracer
         
-    def request(self, method, url, *args, **kwargs):
+    def request(self, method, url, *args, operation_name=None, **kwargs):
         lower_method = method.lower()
-        with self._get_tracer().start_active_span('requests.{}'.format(lower_method)) as scope:
+        if operation_name is None:
+            operation_name = 'requests.{}'.format(lower_method)
+
+        with self._get_tracer().start_active_span(operation_name) as scope:
             span = scope.span
             span.set_tag(tags.SPAN_KIND, tags.SPAN_KIND_RPC_CLIENT)
             span.set_tag(tags.COMPONENT, 'requests')

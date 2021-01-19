@@ -31,6 +31,8 @@ class SessionTracing(requests.sessions.Session):
 
             if self._propagate:
                 headers = kwargs.setdefault('headers', {})
+                if type(headers) == requests.structures.CaseInsensitiveDict:
+                    headers = dict(headers)
                 try:
                     self._get_tracer().inject(span.context, Format.HTTP_HEADERS, headers)
                 except opentracing.UnsupportedFormatException:
